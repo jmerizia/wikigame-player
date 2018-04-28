@@ -15,7 +15,6 @@ db = _mysql.connect(
 
 def bfs(A, B):
     Q = queue.Queue()
-    vis = {}
     tree = {}
     Q.put(A)
     count = 0
@@ -24,17 +23,16 @@ def bfs(A, B):
         if count >= 30:
             return -1
         u = Q.get()
-        db.query("select v from graph where u = %d" % u)
+        db.query("select v from graph where u = %d" % u)  # Isn't SQL beautiful?
         result = db.use_result()
         row = result.fetch_row()[0]
         while len(row) != 0:
-            u = int(row[0])
-            if u == B:
-                return u
-            if not vis[u]:
-                Q.put(u)
-                tree[u] = v
-                vis[u] = True
+            v = int(row[0])
+            if v == B:
+                return v
+            if v not in tree:
+                Q.put(v)
+                tree[v] = u
             row = result.fetch_row()[0]
 
-bfs(12, 0)
+print(bfs(12, 6243762))

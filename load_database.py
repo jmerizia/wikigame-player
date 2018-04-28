@@ -1,3 +1,11 @@
+# NOTE: Do not use this script! It runs WAY too slow. Use these SQL scripts instead:
+
+# load data local infile './wikipedia.in' into table graph fields terminated by ' ';
+# load data local infile './lookup.in' into table lookup fields terminated by '$';
+
+# Make sure you split up the wikipedia.in file first though!
+
+
 import _mysql
 
 password = ""

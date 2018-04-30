@@ -22,11 +22,7 @@ def hms_string(sec_elapsed):
 
 def lookup_id(title):
     db.query("select id from lookup where title = \"%s\"" % title)
-    result = db.use_result()
-    row = result.fetch_row()
-    if len(row) != 0:
-        return int(row[0][0])
-    return -1
+    return list(db.store_result().fetch_row(0))
 
 def lookup_title(id):
     db.query("select title from lookup where id = %d" % id)
@@ -36,56 +32,103 @@ def lookup_title(id):
         return row[0][0].decode('UTF-8')
     return -1
 
-def back_trace(u, tree):
-    path = []
-    while tree[u] != u:
-        path.append(lookup_title(u))
-        u = tree[u]
-    path.append(lookup_title(u))
-    path.reverse()
-    return path
+def back_trace(shared, treeA, treeB):
+
+    pathA = []
+    u = shared
+    while treeA[u] != u:
+        pathA.append(lookup_title(u))
+        u = treeA[u]
+    pathA.append(lookup_title(u))
+    pathA.reverse()
+
+    pathB = []
+    v = shared
+    while treeB[v] != v:
+        # the following two lines are swapped to skip the shared node
+        v = treeB[v]
+        pathB.append(lookup_title(v))
+
+    return pathA + pathB
 
 def bfs(A, B):
-    Q = deque()
-    tree = {A: A}
-    Q.append(A)
-    mx = -1
+    QA = deque()
+    QB = deque()
+    treeA = {A: A}
+    treeB = {B: B}
+    QA.append(A)
+    QB.append(B)
+    mxA = -1
+    mxB = -1
     count = 0
-    while len(Q) != 0:
+    # these conditions will *almost* never be met (unless no path from A to B i.e. dog -> frog)
+    while len(QA) != 0 and len(QB) != 0:  
 
         count += 1
         if count % 1000 == 0:
-            print("max queue size:", mx)
+            print("max/current queue size (A): %d/%d" % (mxA, len(QA)))
+            print("max/current queue size (B): %d/%d" % (mxB, len(QB)))
 
-        u = Q.popleft()
+        # start on A
+        u = QA.popleft()
         db.query("select v from graph where u = %d" % u)  # Isn't SQL beautiful?
         result = db.use_result()
         row = result.fetch_row()
-        while len(row) != 0:
+        while len(row) != 0:     # for every row
             v = int(row[0][0])
-            if v == B:
-                tree[v] = u
+            if v in treeB: # if this node is shared
+                treeA[v] = u
                 result.fetch_row(0) # fetches all rows to end the select query
-                return mx, back_trace(B, tree)
-            if v not in tree:
-                Q.append(v)
-                tree[v] = u
+                return mxA, mxB, back_trace(v, treeA, treeB)
+            if v not in treeA:
+                QA.append(v)
+                treeA[v] = u
             row = result.fetch_row()
-            mx = max(mx, len(Q))
+            mxA = max(mxA, len(QA))
 
-A = lookup_id(input("Start page: "))
-if A == -1:
-    print("A not found")
+        # start on B
+        v = QB.popleft()
+        db.query("select u from graph where v = %d" % v)
+        result = db.use_result()
+        row = result.fetch_row()
+        while len(row) != 0:
+            u = int(row[0][0])
+            if u in treeA:
+                treeB[u] = v
+                result.fetch_row(0)
+                return mxA, mxB, back_trace(u, treeA, treeB)
+            if u not in treeB:
+                QB.append(u)
+                treeB[u] = v
+            row = result.fetch_row()
+            mxB = max(mxB, len(QB))
+
+    return "disconnected"
+
+poss = lookup_id(input("Start page: "))
+if len(poss) == 0:
+    print("Not found :[")
     quit()
 else:
-    print("Found it!")
+    print("Hit!")
+idx = 0
+if len(poss) > 1:
+    print(poss)
+    idx = int(input("Which one? ")) - 1
+A = int(poss[idx][0])
 
-B = lookup_id(input("End page: "))
-if B == -1:
-    print("B not found")
+poss = lookup_id(input("End page: "))
+if len(poss) == 0:
+    print("Not found :[")
     quit()
 else:
-    print("Found it!")
+    print("Hit!")
+idx = 0
+if len(poss) > 1:
+    print(poss)
+    idx = int(input("Which one? ")) - 1
+B = int(poss[idx][0])
+print(A, B)
 
 start_time = time.time()
 print("Searching...")

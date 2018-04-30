@@ -1,0 +1,78 @@
+<!doctype html>
+<head>
+  <title>WikiGame Solver</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet"> 
+</head>
+<body>
+  <h2>
+    WikiGame Player
+  </h2>
+  <p>
+    This page is an interface to an automatic WikiGame player.
+    For more information, view the brief write-up and Github here:<br>
+  </p>
+  <p>
+    <b><a href='https://docs.google.com/document/d/1NjKGZHpTUpVud4ICoHWX25hfH3shvjcqldjst41AhOg/edit?usp=sharing'>Writeup</a></b>
+    <br>
+    <b><a href='https://github.com/jmerizia/wikigame-player'>Github</a></b>
+  </p>
+  <p>
+    To begin, simply type in the titles of any two Wikipedia page. All the data is updated as of the mid-2017 Wikipedia XML dump.
+    <b>Note:</b> Longer queries may take a several seconds. If you can't find a page, it was probably added after 2017.
+  </p>
+  <p>
+    Play around with this as much as you like! Please report bugs and feature suggestions to jake@hokie.io.
+  </p>
+  <p>Start page:
+    <input id='start_page' type='text' />
+  </p>
+
+  <p>End page:
+    <input id='end_page' type='text' />
+  </p>
+  <button id='go'>Find Path</button>
+  <p><b>Path:</b></p>
+  <div id='result'></div>
+</body>
+<script>
+results_div = document.getElementById('result');
+$('#go').click(function () {
+  get_path($('#start_page').val(), $('#end_page').val());
+});
+
+function get_path(A, B) {
+  if (A == '' || B == '') {
+    alert("Please fill in all blanks.");
+    return;
+  }
+  $.ajax({
+    url: "/get_path/" + A + "/" + B,
+    success: function (results) {
+      if (results.error) {
+        alert(results.error);
+      } else {
+        results_div.innerHTML = '';
+        if (typeof results == 'string') {
+          alert(results);
+        } else {
+          for (var i = 0; i < results.titles.length; i++) {
+            var link = document.createElement("a");
+            link.href = "https://en.wikipedia.org/wiki/?curid=" + results.ids[i];
+            link.text = results.titles[i];
+            results_div.appendChild(link);
+            results_div.appendChild(document.createElement("br"));
+          }
+        }
+      }
+    }
+  });
+}
+
+</script>
+
+<style>
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+</style>

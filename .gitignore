@@ -4,3 +4,4 @@ cred.txt
 *.lrz
 *.xml
 *.csv
+__pycache__

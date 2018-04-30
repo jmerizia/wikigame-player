@@ -37,9 +37,9 @@ def back_trace(shared, treeA, treeB):
     pathA = []
     u = shared
     while treeA[u] != u:
-        pathA.append(lookup_title(u))
+        pathA.append(u)
         u = treeA[u]
-    pathA.append(lookup_title(u))
+    pathA.append(u)
     pathA.reverse()
 
     pathB = []
@@ -47,9 +47,11 @@ def back_trace(shared, treeA, treeB):
     while treeB[v] != v:
         # the following two lines are swapped to skip the shared node
         v = treeB[v]
-        pathB.append(lookup_title(v))
+        pathB.append(v)
 
-    return pathA + pathB
+    titlesA = list(map(lookup_title, pathA))
+    titlesB = list(map(lookup_title, pathB))
+    return {"ids": pathA + pathB, "titles": titlesA + titlesB}
 
 def bfs(A, B):
     QA = deque()
@@ -69,6 +71,9 @@ def bfs(A, B):
             print("max/current queue size (A): %d/%d" % (mxA, len(QA)))
             print("max/current queue size (B): %d/%d" % (mxB, len(QB)))
 
+        if mxA >= 300000 or mxB >= 300000:
+            return "took too long :["
+
         # start on A
         u = QA.popleft()
         db.query("select v from graph where u = %d" % u)  # Isn't SQL beautiful?
@@ -79,7 +84,7 @@ def bfs(A, B):
             if v in treeB: # if this node is shared
                 treeA[v] = u
                 result.fetch_row(0) # fetches all rows to end the select query
-                return mxA, mxB, back_trace(v, treeA, treeB)
+                return back_trace(v, treeA, treeB)
             if v not in treeA:
                 QA.append(v)
                 treeA[v] = u
@@ -96,7 +101,7 @@ def bfs(A, B):
             if u in treeA:
                 treeB[u] = v
                 result.fetch_row(0)
-                return mxA, mxB, back_trace(u, treeA, treeB)
+                return back_trace(u, treeA, treeB)
             if u not in treeB:
                 QB.append(u)
                 treeB[u] = v
@@ -105,33 +110,53 @@ def bfs(A, B):
 
     return "disconnected"
 
-poss = lookup_id(input("Start page: "))
-if len(poss) == 0:
-    print("Not found :[")
-    quit()
-else:
-    print("Hit!")
-idx = 0
-if len(poss) > 1:
-    print(poss)
-    idx = int(input("Which one? ")) - 1
-A = int(poss[idx][0])
+def server_runner(start_page, end_page):
+    poss = lookup_id(start_page)
+    if len(poss) == 0:
+        return {"error": "Start page not found :["}
+    idx = 0
+    A = int(poss[idx][0])
 
-poss = lookup_id(input("End page: "))
-if len(poss) == 0:
-    print("Not found :[")
-    quit()
-else:
-    print("Hit!")
-idx = 0
-if len(poss) > 1:
-    print(poss)
-    idx = int(input("Which one? ")) - 1
-B = int(poss[idx][0])
-print(A, B)
+    poss = lookup_id(end_page)
+    if len(poss) == 0:
+        return {"error": "End page not found :["}
+    idx = 0
+    B = int(poss[idx][0])
 
-start_time = time.time()
-print("Searching...")
-print(bfs(A, B))
-elapsed_time = time.time() - start_time
-print("Elapsed time: {}".format(hms_string(elapsed_time)))
+    return bfs(A, B)
+
+
+
+def terminal_runner():
+    poss = lookup_id(input("Start page: "))
+    if len(poss) == 0:
+        print("Not found :[")
+        quit()
+    else:
+        print("Hit!")
+    idx = 0
+    if len(poss) > 1:
+        print(poss)
+        idx = int(input("Which one? ")) - 1
+    A = int(poss[idx][0])
+
+    poss = lookup_id(input("End page: "))
+    if len(poss) == 0:
+        print("Not found :[")
+        quit()
+    else:
+        print("Hit!")
+    idx = 0
+    if len(poss) > 1:
+        print(poss)
+        idx = int(input("Which one? ")) - 1
+    B = int(poss[idx][0])
+    print(A, B)
+
+    start_time = time.time()
+    print("Searching...")
+    print(bfs(A, B))
+    elapsed_time = time.time() - start_time
+    print("Elapsed time: {}".format(hms_string(elapsed_time)))
+
+#terminal_runner()

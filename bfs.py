@@ -6,12 +6,16 @@ password = ""
 with open('cred.txt', 'r') as cred_file:
     password = cred_file.read()[:-1]
 
-db = _mysql.connect(
-        host='localhost',
-        user='root',
-        passwd=password,
-        db='wikipedia'
-        )
+db = -1
+
+def mysql_connect():
+    global db
+    db = _mysql.connect(
+            host='localhost',
+            user='root',
+            passwd=password,
+            db='wikipedia'
+            )
 
 # Nicely formatted time string
 def hms_string(sec_elapsed):
@@ -111,6 +115,7 @@ def bfs(A, B):
     return "disconnected"
 
 def server_runner(start_page, end_page):
+    mysql_connect()
     poss = lookup_id(start_page)
     if len(poss) == 0:
         return {"error": "Start page not found :["}
@@ -122,12 +127,16 @@ def server_runner(start_page, end_page):
         return {"error": "End page not found :["}
     idx = 0
     B = int(poss[idx][0])
+    response = bfs(A, B)
 
-    return bfs(A, B)
+    db.close()
+
+    return response
 
 
 
 def terminal_runner():
+    mysql_connect()
     poss = lookup_id(input("Start page: "))
     if len(poss) == 0:
         print("Not found :[")
